@@ -1,7 +1,9 @@
 package com.example.demo;
 
 import java.io.File;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +30,7 @@ public class DemoApplication implements CommandLineRunner {
 
     @Bean(PollerMetadata.DEFAULT_POLLER)
     public PollerSpec poller() {
-        return Pollers.fixedRate(100).maxMessagesPerPoll(1);
+        return Pollers.fixedDelay(5, TimeUnit.SECONDS).maxMessagesPerPoll(1);
     }
 
     public IntegrationFlow flow() {
@@ -59,11 +61,11 @@ public class DemoApplication implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         IntegrationFlowContext.IntegrationFlowRegistration registration =
-                flowContext.registration(flow()).register();
+                flowContext.registration(flow()).autoStartup(false).register();
         registration.start();
         log.info("run method.");
-        IntStream.range(0, 10)
-                .forEachOrdered(i -> log.info("Received: {} {}", i, pollableChannel().receive()));
+        IntStream.range(0, 10).forEachOrdered(i -> log.info("Received: {} {}", i, pollableChannel().receive()));
+        registration.stop();
         ctx.stop();
         ctx.close();
     }
